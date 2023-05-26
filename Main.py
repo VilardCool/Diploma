@@ -1,5 +1,7 @@
 from skimage.io import imread, imsave
 from telegram.ext import *
+import os
+import time
 
 from UniformQuantization import Uniform_quantization
 from MedianCut import Median_cut
@@ -9,7 +11,6 @@ from OCTree import OCTree
 
 from config import TOKEN
 
-#img = imread('input/Input.png')
 img = [[[]]]
 num_regions = 2
 dept = 4
@@ -23,18 +24,9 @@ block_height_value = 8
 block_value = (20, 10, d)
 palette_value = 38
 
-#new_img = Uniform_quantization(img, num_regions)
-#new_img = Median_cut(img, depth)
-#new_img = KMeans(img, K, max_iters)
-#new_img = Vector_quantization(img, cb_size, epsilon, block)
-#new_img = OCTree(img, palette)
-
-#imsave('output/uniform_quantized.jpg', new_img)
-
-
 photo_name = "img.jpg"
 res_name = "res.jpg"
-UNIFORM_QUANTIZATION, MEDIAN_CUT, KMEANS, VECTOR_QUANTIZATION, OCTREE, PHOTO, NUMBER_OF_REGIONS, DEPTH, K, MAX_ITERATION, CODEBOOK_SIZE, EPSILON, BLOCK_WIDTH, BLOCK_HEIGHT, PALETTE = range(15)
+PHOTO, NUMBER_OF_REGIONS, DEPTH, K, MAX_ITERATION, CODEBOOK_SIZE, EPSILON, BLOCK_WIDTH, BLOCK_HEIGHT, PALETTE = range(10)
 type_of_quantization = 0
 
 async def start(update, context):
@@ -47,15 +39,17 @@ async def start(update, context):
 
 async def help(update, context):
     await update.message.reply_text("Commands:\n"
-                                    "/uniform_quantization - for quantization with range of colors split."
+                                    "/uniform_quantization - for quantization with range of colors split. "
                                     "After this command bot ask about image and number of regions for color.\n"
-                                    "/median_cut - quantization with split on median in color with bigest variety."
+                                    "/median_cut - quantization with split on median in color with bigest variety. "
                                     "Need: image, depth(how many splits will be produced.\n"
-                                    "/kmeans - for quantization with k-means clustering."
+                                    "/kmeans - for quantization with k-means clustering. "
                                     "Need: image, number of clusters and number of iterations.\n"
-                                    "/vector_quantization - for block quantization."
+                                    "/kmeans_parcs - k-means with PARCS. "
+                                    "Need: image.\n"
+                                    "/vector_quantization - for block quantization. "
                                     "Need: image, coddebook size, epsilon for accuracy and block width and height.\n"
-                                    "/kmeans - for quantization with graph trees."
+                                    "/kmeans - for quantization with graph trees. "
                                     "Need: image and palette.\n"
                                     "Also can quit from command with /cancel.")
 
@@ -194,6 +188,38 @@ async def palette(update, context):
 
 ###############################################################################################
 
+async def kmp(update, context):
+    await update.message.reply_text("Send image")
+    return PHOTO
+
+async def parcs(update, context):
+    global img
+    photo_file = await update.message.photo[-1].get_file()
+    await photo_file.download_to_drive(photo_name)
+    img = imread(photo_name)
+
+    await update.message.reply_text("Wait for result")
+    
+    input_name = "out/Input.jpg"
+    res_name = "out/Res.jpg"
+
+    imsave(input_name, img)
+
+    if os.path.exists(res_name):
+        os.remove(res_name)
+
+    os.system("make")
+    
+    while not os.path.exists(res_name):
+        time.sleep(1)
+
+    await update.message.reply_text("Result:")
+    await context.bot.send_photo(chat_id=update.message.chat_id, photo=open(res_name, 'rb'))
+
+    return ConversationHandler.END
+
+###############################################################################################
+
 async def photo(update, context):
     global img
     photo_file = await update.message.photo[-1].get_file()
@@ -262,6 +288,15 @@ def main() -> None:
         fallbacks=[CommandHandler("cancel", cancel)],
     )
     application.add_handler(km_handler)
+
+    kmp_handler = ConversationHandler(
+        entry_points=[CommandHandler("kmeans_parcs", kmp)],
+        states={
+            PHOTO: [MessageHandler(filters.PHOTO, parcs), CommandHandler("cancel", cancel), MessageHandler(filters.ALL, send_photo)],
+        },
+        fallbacks=[CommandHandler("cancel", cancel)],
+    )
+    application.add_handler(kmp_handler)
     
     vq_handler = ConversationHandler(
         entry_points=[CommandHandler("vector_quantization", vector_quantization)],
