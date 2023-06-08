@@ -48,8 +48,8 @@ async def help(update, context):
                                     "/kmeans_parcs - k-means with PARCS. "
                                     "Need: image.\n"
                                     "/vector_quantization - for block quantization. "
-                                    "Need: image, coddebook size, epsilon for accuracy and block width and height.\n"
-                                    "/kmeans - for quantization with graph trees. "
+                                    "Need: image, codebook size, epsilon for accuracy and block width and height.\n"
+                                    "/octree - for quantization with graph trees. "
                                     "Need: image and palette.\n"
                                     "Also can quit from command with /cancel.")
 
@@ -63,6 +63,16 @@ async def uniform_quantization(update, context):
 
 async def number_of_regions(update, context):
     num_regions = int(update.message.text)
+
+    if (num_regions < 2):
+        await update.message.reply_text("Number of regions must be at least 2, send another value")
+        return NUMBER_OF_REGIONS
+    
+    if (num_regions > 16):
+        await update.message.reply_text("Number of regions must be at most 16, send another value")
+        return NUMBER_OF_REGIONS
+
+
 
     await update.message.reply_text("Wait for result")
 
@@ -85,6 +95,14 @@ async def median_cut(update, context):
 async def depth(update, context):
     depth = int(update.message.text)
 
+    if (depth < 1):
+        await update.message.reply_text("Depth must be at least 1, send another value")
+        return DEPTH
+    
+    if (depth > 8):
+        await update.message.reply_text("Depth must be at most 8, send another value")
+        return DEPTH
+
     await update.message.reply_text("Wait for result")
 
     res_img = Median_cut(img, depth)
@@ -106,11 +124,28 @@ async def kmeans(update, context):
 async def k(update, context):
     global K_num
     K_num = int(update.message.text)
-    await update.message.reply_text("Max iteration")
+
+    if (K_num < 2):
+        await update.message.reply_text("Number of clusters must be at least 2, send another value")
+        return K
+    
+    if (K_num > 32):
+        await update.message.reply_text("Number of clusters must be at most 32, send another value")
+        return K
+
+    await update.message.reply_text("Max iteration show maximum number of repeat. Send integer from 1 to 20")
     return MAX_ITERATION
 
 async def max_iter(update, context):
     max_iters = int(update.message.text)
+
+    if (max_iters < 1):
+        await update.message.reply_text("Maximum operation must be at least 1, send another value")
+        return MAX_ITERATION
+    
+    if (max_iters > 20):
+        await update.message.reply_text("Maximum operation must be at most 20, send another value")
+        return MAX_ITERATION
 
     await update.message.reply_text("Wait for result")
 
@@ -133,23 +168,51 @@ async def vector_quantization(update, context):
 async def codebook_size(update, context):
     global cb_size
     cb_size = int(update.message.text)
-    await update.message.reply_text("Epsilon")
+
+    if (cb_size < 1):
+        await update.message.reply_text("Codebook size must be at least 1, send another value")
+        return CODEBOOK_SIZE
+    
+    if (cb_size > 64):
+        await update.message.reply_text("Codebook size must be at most 64, send another value")
+        return CODEBOOK_SIZE
+    
+    await update.message.reply_text("Epsilon as threshold. Send positive float less than 1, e.g. 0.05")
     return EPSILON
 
 async def epsilon(update, context):
     global epsilon_value
     epsilon_value = float(update.message.text)
-    await update.message.reply_text("Block width")
+    await update.message.reply_text("Block width. Send integer from 1 to "+str(int(img.shape[1]/4)))
     return BLOCK_WIDTH
 
 async def block_width(update, context):
     global block_width_value
     block_width_value = int(update.message.text)
-    await update.message.reply_text("Block height")
+
+    if (block_width_value < 1):
+        await update.message.reply_text("Block width must be at least 1, send another value")
+        return BLOCK_WIDTH
+    
+    max_block_width = int(img.shape[1]/4)
+    if (block_width_value > max_block_width):
+        await update.message.reply_text("Block width must be at most "+str(max_block_width)+" , send another value")
+        return BLOCK_WIDTH
+    
+    await update.message.reply_text("Block height. Send integer from 1 to "+str(int(img.shape[0]/4)))
     return BLOCK_HEIGHT
 
 async def block_height(update, context):
     block_height_value = int(update.message.text)
+
+    if (block_height_value < 1):
+        await update.message.reply_text("Block height must be at least 1, send another value")
+        return BLOCK_HEIGHT
+    
+    max_block_height = int(img.shape[0]/4)
+    if (block_height_value > max_block_height):
+        await update.message.reply_text("Block height must be at most "+str(max_block_height)+" , send another value")
+        return BLOCK_HEIGHT
 
     d=1
     if (len(img.shape) > 2): d = img.shape[2]
@@ -175,6 +238,14 @@ async def octree(update, context):
 
 async def palette(update, context):
     palette_value = int(update.message.text)
+
+    if (palette_value < 8):
+        await update.message.reply_text("Palette must be at least 8, send another value")
+        return PALETTE
+    
+    if (palette_value > 128):
+        await update.message.reply_text("Palette must be at most 128, send another value")
+        return PALETTE
 
     await update.message.reply_text("Wait for result")
 
@@ -227,11 +298,11 @@ async def photo(update, context):
     img = imread(photo_name)
 
     text = ""
-    if(type_of_quantization == NUMBER_OF_REGIONS): text = "Number of regions"
-    elif(type_of_quantization == DEPTH): text = "Depth"
-    elif(type_of_quantization == K): text = "Number of cluster"
-    elif(type_of_quantization == CODEBOOK_SIZE): text = "Codebook size"
-    elif(type_of_quantization == PALETTE): text = "Palette"
+    if(type_of_quantization == NUMBER_OF_REGIONS): text = "Number of regions split each color channel. Send integer from 2 to 16"
+    elif(type_of_quantization == DEPTH): text = "Depth. Result colors will be 2^depth, so send integer from 1 to 8"
+    elif(type_of_quantization == K): text = "Number of cluster give amount of result colors. Send integer from 2 to 32"
+    elif(type_of_quantization == CODEBOOK_SIZE): text = "Codebook size give result colors as nearest bigger power of two. Send integer from 1 to 64"
+    elif(type_of_quantization == PALETTE): text = "Palette give amount of result colors. Send integer from 8 to 128"
 
     await update.message.reply_text(text)
 
@@ -303,7 +374,7 @@ def main() -> None:
         states={
             PHOTO: [MessageHandler(filters.PHOTO, photo), CommandHandler("cancel", cancel), MessageHandler(filters.ALL, send_photo)],
             CODEBOOK_SIZE: [MessageHandler(filters.Regex("^[0-9]+$"), codebook_size), CommandHandler("cancel", cancel), MessageHandler(filters.ALL, send_integer)],
-            EPSILON: [MessageHandler(filters.Regex("^0.[0-9]+$"), epsilon), CommandHandler("cancel", cancel), MessageHandler(filters.ALL, send_float)],
+            EPSILON: [MessageHandler(filters.Regex("^0[.][0-9]+$"), epsilon), CommandHandler("cancel", cancel), MessageHandler(filters.ALL, send_float)],
             BLOCK_WIDTH: [MessageHandler(filters.Regex("^[0-9]+$"), block_width), CommandHandler("cancel", cancel), MessageHandler(filters.ALL, send_integer)],
             BLOCK_HEIGHT: [MessageHandler(filters.Regex("^[0-9]+$"), block_height), CommandHandler("cancel", cancel), MessageHandler(filters.ALL, send_integer)],
         },
