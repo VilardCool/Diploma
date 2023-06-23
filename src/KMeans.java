@@ -4,7 +4,7 @@ import java.util.Random;
 public class KMeans implements AM
 {
 	public void run(AMInfo info){
-		int k = 16;
+		int k = 32;
 		
 		int[] rgb = (int[]) info.parent.readObject();
 		
@@ -39,7 +39,7 @@ public class KMeans implements AM
 		int[] green_sum = new int[k];
 		int[] blue_sum = new int[k];
 		
-		int max_iterations = 100;
+		int max_iterations = 1;
 		int num_iterations = 1;
 		System.out.println("Clustering k = " + k + " points...");
 		while (num_iterations <= max_iterations) {
